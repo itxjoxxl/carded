@@ -29,7 +29,7 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
   const playerBet = localPlayer ? (holdem.playerBets?.[localPlayer.id] ?? 0) : 0;
   const callAmount = currentBet - playerBet;
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
   const isWinner = localPlayer ? state.winners.includes(localPlayer.id) : false;
 

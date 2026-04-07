@@ -28,7 +28,7 @@ export default function GoFishBoard({ gameId }: BoardProps) {
   const books: Record<string, string[]> = gf.books ?? {};
   const pond = gf.pond ?? [];
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
   const isWinner = localPlayer ? state.winners.includes(localPlayer.id) : false;
 

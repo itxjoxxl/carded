@@ -50,42 +50,61 @@ export function createInitialState(
   const smallBlind = options.smallBlind ?? 10;
   const bigBlind = options.bigBlind ?? 20;
 
-  const holdemPlayers: HoldemPlayer[] = players.map((p) => ({
-    playerId: p.id,
-    holeCards: [],
-    chips: startingChips,
-    bet: 0,
-    totalBet: 0,
-    folded: false,
-    allIn: false,
-    acted: false,
-    isSmallBlind: false,
-    isBigBlind: false,
-  }));
+  const n = players.length;
+  const dealerIndex = 0;
+  const smallBlindIndex = n === 2 ? 0 : 1 % n;
+  const bigBlindIndex = n === 2 ? 1 : 2 % n;
 
+  // Deal hole cards immediately
+  const deck = shuffle(createStandardDeck(), seed);
+  let deckCopy = [...deck];
+
+  const holdemPlayers: HoldemPlayer[] = players.map((p, i) => {
+    const isSB = i === smallBlindIndex;
+    const isBB = i === bigBlindIndex;
+    const blind = isSB ? smallBlind : isBB ? bigBlind : 0;
+    const cards = deckCopy.splice(0, 2).map((c) => ({ ...c, faceUp: true }));
+    return {
+      playerId: p.id,
+      holeCards: cards,
+      chips: startingChips - blind,
+      bet: 0,
+      totalBet: blind,
+      folded: false,
+      allIn: false,
+      acted: isBB, // BB has "option" to act last
+      isSmallBlind: isSB,
+      isBigBlind: isBB,
+    };
+  });
+
+  const pot = smallBlind + bigBlind;
   const scores: Record<string, number> = {};
-  for (const p of players) scores[p.id] = startingChips;
+  for (const p of holdemPlayers) scores[p.playerId] = p.chips;
+
+  // First to act preflop: left of big blind
+  const firstActor = (bigBlindIndex + 1) % n;
 
   return {
     gameId: 'texas-holdem',
     players,
-    currentPlayerIndex: 0,
-    phase: 'ante',
+    currentPlayerIndex: firstActor,
+    phase: 'preflop',
     status: 'active',
     winners: [],
     scores,
     turnCount: 0,
     holdemPlayers,
-    deck: [],
+    deck: deckCopy,
     communityCards: [],
-    pot: 0,
+    pot,
     sidePots: [],
     currentBet: bigBlind,
     smallBlind,
     bigBlind,
-    dealerIndex: 0,
-    smallBlindIndex: 1 % players.length,
-    bigBlindIndex: 2 % players.length,
+    dealerIndex,
+    smallBlindIndex,
+    bigBlindIndex,
     lastRaiserIndex: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -287,7 +306,7 @@ export function applyAction(state: HoldemState, action: GameAction): HoldemState
         };
       }
 
-      const nextIdx = isBigBlind ? s.bigBlindIndex : s.bigBlindIndex;
+      const nextIdx = isBigBlind ? s.bigBlindIndex : s.smallBlindIndex;
       return { ...s, holdemPlayers: players, currentPlayerIndex: nextIdx };
     }
 

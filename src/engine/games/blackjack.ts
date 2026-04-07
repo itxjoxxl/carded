@@ -173,7 +173,9 @@ export function applyAction(state: BlackjackState, action: GameAction): Blackjac
         };
       }
 
-      return { ...s, bjPlayers, phase: 'betting' };
+      // Advance to next player who hasn't bet
+      const nextIdx = bjPlayers.findIndex((p) => p.hands.length === 0);
+      return { ...s, bjPlayers, phase: 'betting', currentPlayerIndex: nextIdx === -1 ? 0 : nextIdx };
     }
 
     case 'insurance': {

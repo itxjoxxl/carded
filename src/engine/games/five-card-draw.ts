@@ -39,33 +39,40 @@ export function createInitialState(
   const startingChips = options.startingChips ?? 1000;
   const anteAmount = options.anteAmount ?? 5;
 
-  const fcdPlayers: FiveCardDrawPlayer[] = players.map((p) => ({
-    playerId: p.id,
-    hand: [],
-    chips: startingChips,
-    bet: 0,
-    totalBet: 0,
-    folded: false,
-    allIn: false,
-    acted: false,
-    discardedCount: 0,
-  }));
+  // Auto-ante + deal 5 cards to each
+  const deck = shuffle(createStandardDeck(), seed);
+  let deckCopy = [...deck];
+  const fcdPlayers: FiveCardDrawPlayer[] = players.map((p) => {
+    const cards = deckCopy.splice(0, 5).map((c) => ({ ...c, faceUp: true }));
+    return {
+      playerId: p.id,
+      hand: cards,
+      chips: startingChips - anteAmount,
+      bet: 0,
+      totalBet: anteAmount,
+      folded: false,
+      allIn: false,
+      acted: false,
+      discardedCount: 0,
+    };
+  });
 
+  const pot = anteAmount * players.length;
   const scores: Record<string, number> = {};
-  for (const p of players) scores[p.id] = startingChips;
+  for (const p of fcdPlayers) scores[p.playerId] = p.chips;
 
   return {
     gameId: 'five-card-draw',
     players,
-    currentPlayerIndex: 0,
-    phase: 'ante',
+    currentPlayerIndex: 1 % players.length,
+    phase: 'first-bet',
     status: 'active',
     winners: [],
     scores,
     turnCount: 0,
     fcdPlayers,
-    deck: [],
-    pot: 0,
+    deck: deckCopy,
+    pot,
     currentBet: 0,
     anteAmount,
     dealerIndex: 0,
@@ -168,11 +175,15 @@ export function applyAction(state: FiveCardDrawState, action: GameAction): FiveC
 
       const pot = s.pot + actual;
       const nextIdx = nextActivePlayer(players, pIdx);
-      const phase = allActed(players, newCurrentBet)
-        ? s.phase === 'first-bet' ? 'draw' : 'showdown'
-        : s.phase;
-
-      return { ...s, fcdPlayers: players, pot, currentBet: newCurrentBet, currentPlayerIndex: nextIdx, phase };
+      if (allActed(players, newCurrentBet)) {
+        if (s.phase === 'first-bet') {
+          const firstDrawer = (s.dealerIndex + 1) % s.players.length;
+          const resetPlayers = players.map((pl) => ({ ...pl, acted: false, bet: 0 }));
+          return { ...s, fcdPlayers: resetPlayers, pot, currentBet: newCurrentBet, phase: 'draw', currentPlayerIndex: firstDrawer };
+        }
+        return resolveShowdown({ ...s, fcdPlayers: players, pot, currentBet: newCurrentBet });
+      }
+      return { ...s, fcdPlayers: players, pot, currentBet: newCurrentBet, currentPlayerIndex: nextIdx };
     }
 
     case 'call': {
@@ -191,11 +202,15 @@ export function applyAction(state: FiveCardDrawState, action: GameAction): FiveC
 
       const pot = s.pot + callAmount;
       const nextIdx = nextActivePlayer(players, pIdx);
-      const phase = allActed(players, s.currentBet)
-        ? s.phase === 'first-bet' ? 'draw' : 'showdown'
-        : s.phase;
-
-      return { ...s, fcdPlayers: players, pot, currentPlayerIndex: nextIdx, phase };
+      if (allActed(players, s.currentBet)) {
+        if (s.phase === 'first-bet') {
+          const firstDrawer = (s.dealerIndex + 1) % s.players.length;
+          const resetPlayers = players.map((pl) => ({ ...pl, acted: false, bet: 0 }));
+          return { ...s, fcdPlayers: resetPlayers, pot, phase: 'draw', currentPlayerIndex: firstDrawer };
+        }
+        return resolveShowdown({ ...s, fcdPlayers: players, pot });
+      }
+      return { ...s, fcdPlayers: players, pot, currentPlayerIndex: nextIdx };
     }
 
     case 'check': {
@@ -206,11 +221,15 @@ export function applyAction(state: FiveCardDrawState, action: GameAction): FiveC
       players[pIdx].acted = true;
 
       const nextIdx = nextActivePlayer(players, pIdx);
-      const phase = allActed(players, s.currentBet)
-        ? s.phase === 'first-bet' ? 'draw' : 'showdown'
-        : s.phase;
-
-      return { ...s, fcdPlayers: players, currentPlayerIndex: nextIdx, phase };
+      if (allActed(players, s.currentBet)) {
+        if (s.phase === 'first-bet') {
+          const firstDrawer = (s.dealerIndex + 1) % s.players.length;
+          const resetPlayers = players.map((pl) => ({ ...pl, acted: false, bet: 0 }));
+          return { ...s, fcdPlayers: resetPlayers, phase: 'draw', currentPlayerIndex: firstDrawer };
+        }
+        return resolveShowdown({ ...s, fcdPlayers: players });
+      }
+      return { ...s, fcdPlayers: players, currentPlayerIndex: nextIdx };
     }
 
     case 'fold': {
@@ -243,11 +262,15 @@ export function applyAction(state: FiveCardDrawState, action: GameAction): FiveC
       }
 
       const nextIdx = nextActivePlayer(players, pIdx);
-      const phase = allActed(players, s.currentBet)
-        ? s.phase === 'first-bet' ? 'draw' : 'showdown'
-        : s.phase;
-
-      return { ...s, fcdPlayers: players, currentPlayerIndex: nextIdx, phase };
+      if (allActed(players, s.currentBet)) {
+        if (s.phase === 'first-bet') {
+          const firstDrawer = (s.dealerIndex + 1) % s.players.length;
+          const resetPlayers = players.map((pl) => ({ ...pl, acted: false, bet: 0 }));
+          return { ...s, fcdPlayers: resetPlayers, phase: 'draw', currentPlayerIndex: firstDrawer };
+        }
+        return resolveShowdown({ ...s, fcdPlayers: players });
+      }
+      return { ...s, fcdPlayers: players, currentPlayerIndex: nextIdx };
     }
 
     case 'raise': {
@@ -300,11 +323,15 @@ export function applyAction(state: FiveCardDrawState, action: GameAction): FiveC
 
       const pot = s.pot + allInAmount;
       const nextIdx = nextActivePlayer(players, pIdx);
-      const phase = allActed(players, newCurrentBet)
-        ? s.phase === 'first-bet' ? 'draw' : 'showdown'
-        : s.phase;
-
-      return { ...s, fcdPlayers: players, pot, currentBet: newCurrentBet, currentPlayerIndex: nextIdx, phase };
+      if (allActed(players, newCurrentBet)) {
+        if (s.phase === 'first-bet') {
+          const firstDrawer = (s.dealerIndex + 1) % s.players.length;
+          const resetPlayers = players.map((pl) => ({ ...pl, acted: false, bet: 0 }));
+          return { ...s, fcdPlayers: resetPlayers, pot, currentBet: newCurrentBet, phase: 'draw', currentPlayerIndex: firstDrawer };
+        }
+        return resolveShowdown({ ...s, fcdPlayers: players, pot, currentBet: newCurrentBet });
+      }
+      return { ...s, fcdPlayers: players, pot, currentBet: newCurrentBet, currentPlayerIndex: nextIdx };
     }
 
     case 'discard': {
@@ -416,12 +443,9 @@ export function getLegalActions(state: FiveCardDrawState, playerId: string): Gam
     }
   }
 
-  if (state.phase === 'draw' && !p.acted) {
-    // Can discard 0-4 cards
-    for (let i = 0; i <= Math.min(4, p.hand.length); i++) {
-      actions.push({ type: 'discard', playerId, payload: { cardIds: [] } }); // placeholder
-    }
-    // Actual discard action requires specific card IDs
+  if (state.phase === 'draw' && !p.acted && state.currentPlayerIndex === pIdx) {
+    // Board UI will construct actual discard action with specific card IDs
+    actions.push({ type: 'discard', playerId, payload: { cardIds: [] } });
   }
 
   return actions;

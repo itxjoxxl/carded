@@ -18,13 +18,13 @@ export default function SnapBoard({ gameId }: BoardProps) {
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponents = state.players.filter((p: any) => !p.isLocal);
   const playerDecks: Record<string, any[]> = snap.playerDecks ?? {};
-  const centerPile: any[] = snap.centerPile ?? [];
+  const centerPile: any[] = snap.centralPile ?? [];
   const topCard = centerPile[centerPile.length - 1];
   const prevCard = centerPile[centerPile.length - 2];
   const isSnap = topCard && prevCard && topCard.rank === prevCard.rank;
   const snapClaimed = snap.snapClaimed;
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
   const isWinner = localPlayer ? state.winners.includes(localPlayer.id) : false;
 

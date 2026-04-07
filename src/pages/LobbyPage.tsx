@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AppShell from '@/components/layout/AppShell';
@@ -20,19 +20,26 @@ export default function LobbyPage() {
   const { profile } = useProfileStore();
   const { startGame } = useGameStore();
   const [tab, setTab] = useState<Tab>('bots');
-  const [botCount, setBotCount] = useState(1);
+  const game = gameId ? getGame(gameId) : null;
+
+  // Default bots = enough to meet minPlayers (user counts as 1)
+  const minBots = Math.max(0, (game?.minPlayers ?? 1) - 1);
+  const maxBots = Math.max(minBots, Math.min((game?.maxPlayers ?? 1) - 1, 5));
+  const [botCount, setBotCount] = useState(minBots);
   const [showRules, setShowRules] = useState(false);
 
-  const game = gameId ? getGame(gameId) : null;
+  useEffect(() => {
+    setBotCount(minBots);
+  }, [minBots]);
 
   if (!game || !gameId) {
     return <div className="text-white p-8">Game not found</div>;
   }
 
-  const maxBots = Math.min(game.maxPlayers - 1, 5);
+  const isSolo = game.maxPlayers === 1;
 
   function handleStartLocal() {
-    if (!profile) return;
+    if (!profile || !game) return;
     const localPlayer = { id: profile.id, name: profile.name, avatar: profile.avatar, isBot: false, isLocal: true, seatIndex: 0 };
     const bots = Array.from({ length: botCount }, (_, i) => ({
       id: `bot-${i}`,
@@ -82,7 +89,14 @@ export default function LobbyPage() {
         {/* Tab content */}
         {tab === 'bots' ? (
           <div className="flex flex-col gap-5">
-            <BotConfig maxBots={maxBots} botCount={botCount} onBotCountChange={setBotCount} />
+            {!isSolo && (
+              <BotConfig
+                minBots={minBots}
+                maxBots={maxBots}
+                botCount={botCount}
+                onBotCountChange={setBotCount}
+              />
+            )}
             <Button variant="gold" size="lg" onClick={handleStartLocal} fullWidth>
               🎮 Start Game
             </Button>

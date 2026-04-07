@@ -21,7 +21,7 @@ export default function OldMaidBoard({ gameId }: BoardProps) {
   const pairs: Record<string, number> = om.pairsDiscarded ?? {};
   const phase = om.phase;
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
   const isWinner = localPlayer ? state.winners.includes(localPlayer.id) : false;
 

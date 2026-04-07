@@ -23,7 +23,7 @@ export default function SolitaireBoard({ gameId }: BoardProps) {
   const tableau: CardType[][] = sol.tableau ?? [[], [], [], [], [], [], []];
   const topWaste = waste[waste.length - 1];
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const localPlayer = state.players[0];
 
   function handleStockClick() {

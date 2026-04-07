@@ -24,7 +24,7 @@ export default function RummyBoard({ gameId }: BoardProps) {
   const discardPile = rummy.discardPile ?? [];
   const phase = rummy.phase ?? 'draw';
 
-  const gameOver = state.status === 'ended';
+  const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
   const isWinner = localPlayer ? state.winners.includes(localPlayer.id) : false;
 

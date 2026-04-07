@@ -9,21 +9,23 @@ const DIFFICULTIES: { value: BotDifficulty; label: string; emoji: string; desc: 
 ];
 
 interface BotConfigProps {
+  minBots: number;
   maxBots: number;
   botCount: number;
   onBotCountChange: (n: number) => void;
 }
 
-export default function BotConfig({ maxBots, botCount, onBotCountChange }: BotConfigProps) {
+export default function BotConfig({ minBots, maxBots, botCount, onBotCountChange }: BotConfigProps) {
   const { botDifficulty, setBotDifficulty } = useGameStore();
+  const range = Array.from({ length: Math.max(0, maxBots - minBots + 1) }, (_, i) => minBots + i).filter((n) => n >= 1);
 
   return (
     <div className="flex flex-col gap-4">
       {/* Number of bots */}
       <div>
         <label className="text-sm text-white/60 font-ui mb-2 block">Number of Opponents</label>
-        <div className="flex gap-2">
-          {Array.from({ length: maxBots }, (_, i) => i + 1).map((n) => (
+        <div className="flex gap-2 flex-wrap">
+          {range.map((n) => (
             <button
               key={n}
               onClick={() => onBotCountChange(n)}

@@ -128,21 +128,35 @@ export function useGame(_gameId?: string) {
     }
 
     setEngineLoaded(false);
-    loader().then((mod) => {
-      engineRef.current = mod;
-      setEngineLoaded(true);
+    loader()
+      .then((mod) => {
+        engineRef.current = mod;
+        setEngineLoaded(true);
 
-      // If the store only has a shell state (status: 'idle'), initialise via engine
-      const current = useGameStore.getState().state;
-      if (current && current.status === 'idle' && mod.createInitialState) {
-        const realState = mod.createInitialState(
-          current.players,
-          {},
-          current.seed
-        );
-        _setState(realState);
-      }
-    });
+        // If the store only has a shell state (status: 'idle'), initialise via engine
+        const current = useGameStore.getState().state;
+        if (current && current.status === 'idle' && mod.createInitialState) {
+          try {
+            const realState = mod.createInitialState(
+              current.players,
+              {},
+              current.seed
+            );
+            _setState(realState);
+          } catch (err) {
+            console.error(`[useGame] createInitialState failed for ${gameId}:`, err);
+            _setState({
+              ...current,
+              status: 'finished',
+              winners: [],
+              phase: 'error',
+            } as BaseGameState);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(`[useGame] failed to load engine for ${gameId}:`, err);
+      });
   }, [gameId, _setState]);
 
   // Derived values
@@ -188,23 +202,26 @@ export function useGame(_gameId?: string) {
   );
 
   // ---------------------------------------------------------------------------
-  // Bot turns — fire after the current player index changes to a bot seat
+  // Bot turns — fire whenever it becomes a bot's turn
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!engineLoaded || !state || (state.status !== 'active' && state.status !== 'playing')) return;
+    if (!engineLoaded || !state) return;
+    if (state.status !== 'active' && state.status !== 'playing') return;
     if (!currentPlayer?.isBot) return;
 
     const delay = BOT_DELAY[botDifficulty] ?? 800;
+    const snapshotState = state;
+    const snapshotPlayer = currentPlayer;
 
     botTimerRef.current = setTimeout(() => {
-      if (!engineRef.current || !state || !currentPlayer) return;
+      if (!engineRef.current) return;
       try {
         const action = engineRef.current.getBotAction(
-          state,
-          currentPlayer.id,
+          snapshotState,
+          snapshotPlayer.id,
           botDifficulty
         );
-        doAction(action);
+        if (action && action.type) doAction(action);
       } catch (err) {
         console.error('[useGame] getBotAction error', err);
       }
@@ -213,12 +230,12 @@ export function useGame(_gameId?: string) {
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     engineLoaded,
-    state?.currentPlayerIndex,
-    state?.status,
+    state,
+    currentPlayer,
     botDifficulty,
+    doAction,
   ]);
 
   const restart = useCallback(() => {
