@@ -151,12 +151,12 @@ export function applyAction(state: HeartsState, action: GameAction): HeartsState
 
   if (type === 'pass') {
     const { cardIds } = payload as { cardIds: string[] };
-    if (state.phase !== 'passing' || cardIds.length !== 3) return state;
+    if (state.phase !== 'passing') return state;
     if (state.passDirection === 'none') {
-      // Skip passing
-      const allPassed = state.players.every((p) => true);
+      // No-pass round — advance to playing immediately
       return resolvePassPhase(state);
     }
+    if (cardIds.length !== 3) return state;
     const cards = state.hands[currentPlayer.id].filter((c) => cardIds.includes(c.id));
     if (cards.length !== 3) return state;
 

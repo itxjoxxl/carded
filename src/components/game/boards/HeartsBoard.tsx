@@ -40,7 +40,7 @@ export default function HeartsBoard({ gameId }: BoardProps) {
   }
 
   function handlePass() {
-    doAction({ type: 'pass', payload: { cardIds: [...selectedForPass] } });
+    doAction({ type: 'pass', payload: { cardIds: passDirection === 'none' ? [] : [...selectedForPass] } });
     setSelectedForPass(new Set());
   }
 
@@ -128,11 +128,17 @@ export default function HeartsBoard({ gameId }: BoardProps) {
       </div>
 
       {/* Actions */}
-      {isMyTurn && phase === 'passing' && selectedForPass.size === 3 && (
+      {isMyTurn && phase === 'passing' && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-8 pt-8">
-          <Button variant="gold" onClick={handlePass} className="w-full max-w-xs mx-auto block">
-            Pass Cards →
-          </Button>
+          {passDirection === 'none' ? (
+            <Button variant="gold" onClick={handlePass} className="w-full max-w-xs mx-auto block">
+              No Pass Round — Continue →
+            </Button>
+          ) : selectedForPass.size === 3 ? (
+            <Button variant="gold" onClick={handlePass} className="w-full max-w-xs mx-auto block">
+              Pass Cards →
+            </Button>
+          ) : null}
         </div>
       )}
 

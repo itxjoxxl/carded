@@ -36,10 +36,10 @@ export default function RummyBoard({ gameId }: BoardProps) {
     });
   }
 
-  const canDrawStock = isMyTurn && phase === 'draw' && legalActions.some((a: any) => a.type === 'drawFromStock');
-  const canDrawDiscard = isMyTurn && phase === 'draw' && legalActions.some((a: any) => a.type === 'drawFromDiscard');
-  const canMeld = isMyTurn && phase === 'play' && selectedCards.size >= 3;
-  const canDiscard = isMyTurn && phase === 'discard' && selectedCards.size === 1;
+  const canDrawStock = isMyTurn && legalActions.some((a: any) => a.type === 'drawFromStock');
+  const canDrawDiscard = isMyTurn && legalActions.some((a: any) => a.type === 'drawFromDiscard');
+  const canMeld = isMyTurn && phase === 'meld' && selectedCards.size >= 3 && legalActions.some((a: any) => a.type === 'layMeld');
+  const canDiscard = isMyTurn && phase === 'meld' && selectedCards.size === 1 && legalActions.some((a: any) => a.type === 'discard');
 
   return (
     <div className="relative w-full h-full bg-felt flex flex-col overflow-hidden">
@@ -76,7 +76,7 @@ export default function RummyBoard({ gameId }: BoardProps) {
       {/* Phase hint */}
       {isMyTurn && (
         <div className="text-center text-xs text-white/40 font-ui">
-          {phase === 'draw' ? 'Draw a card' : phase === 'discard' ? 'Select a card to discard' : 'Form melds or discard'}
+          {phase === 'draw' ? 'Draw a card from the pile or discard' : 'Form melds, lay off, or discard a card'}
         </div>
       )}
 

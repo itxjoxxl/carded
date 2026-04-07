@@ -128,10 +128,24 @@ export function applyAction(state: UnoState, action: GameAction): UnoState {
 
     // Check win
     if (hand.length === 0) {
+      // Score = sum of all other players' remaining card values
+      const scoreGained = state.players
+        .filter((p) => p.id !== currentPlayer.id)
+        .reduce((sum, p) => {
+          const pHand = newState.hands[p.id] ?? [];
+          return sum + pHand.reduce((s, c) => {
+            if (c.color === 'wild') return s + 50;
+            if (['skip', 'reverse', 'draw2'].includes(c.value)) return s + 20;
+            const n = parseInt(c.value);
+            return s + (isNaN(n) ? 0 : n);
+          }, 0);
+        }, 0);
+      const newScores = { ...newState.scores, [currentPlayer.id]: (newState.scores[currentPlayer.id] ?? 0) + scoreGained };
       return {
         ...newState,
+        scores: newScores,
         phase: 'ended',
-        status: 'ended',
+        status: 'finished',
         winners: [currentPlayer.id],
       };
     }

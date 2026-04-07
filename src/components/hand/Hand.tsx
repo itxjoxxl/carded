@@ -29,10 +29,11 @@ export default function Hand({
   maxFanAngle = 4,
 }: HandProps) {
   const shouldBeUp = faceUp ?? isLocal;
+  // Drag is enabled for local players (reordering is purely visual if no onReorder supplied)
   const { displayOrder, getDragProps, containerRef } = useDragHand(
     cards,
     onReorder ?? (() => {}),
-    !isLocal || !onReorder,
+    !isLocal,
   );
 
   const count = displayOrder.length;
@@ -64,7 +65,7 @@ export default function Hand({
         const offset = index - mid;
         const rotate = offset * maxFanAngle * (isLocal ? 1 : 0.6);
         const yOffset = Math.abs(offset) * 2.5;
-        const dragProps = isLocal && onReorder ? getDragProps(index) : {};
+        const dragProps = isLocal ? getDragProps(index) : {};
 
         return (
           <motion.div
@@ -73,10 +74,10 @@ export default function Hand({
             initial={{ opacity: 0, y: -20, scale: 0.8 }}
             animate={{
               opacity: 1,
-              y: -yOffset,
-              scale: 1,
+              y: selectedCardIds.includes(card.id) ? -yOffset - 18 : -yOffset,
+              scale: selectedCardIds.includes(card.id) ? 1.08 : 1,
               rotate,
-              zIndex: selectedCardIds.includes(card.id) ? count + 10 : index,
+              zIndex: selectedCardIds.includes(card.id) ? 100 : index,
             }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, delay: index * 0.04 }}
