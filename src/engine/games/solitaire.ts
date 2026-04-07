@@ -106,7 +106,7 @@ function revealTopTableau(tableau: Card[][]): Card[][] {
 }
 
 export function applyAction(state: SolitaireState, action: GameAction): SolitaireState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1, moves: state.moves + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1, moves: state.moves + 1 };
 
   switch (action.type) {
     case 'stockToWaste': {

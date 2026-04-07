@@ -116,7 +116,7 @@ function drawCard(shoe: Card[]): { card: Card; shoe: Card[] } {
 }
 
 export function applyAction(state: BlackjackState, action: GameAction): BlackjackState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'bet': {

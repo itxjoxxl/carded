@@ -117,11 +117,11 @@ function getNextActivePlayerIndex(
 }
 
 export function applyAction(state: OldMaidState, action: GameAction): OldMaidState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'discard-pairs': {
-      const pid = action.playerId;
+      const pid = action.playerId ?? '';
       const hand = [...(s.hands[pid] ?? [])];
       const { hand: newHand, pairsRemoved } = discardPairsFromHand(hand);
       const newHands = { ...s.hands, [pid]: newHand };
@@ -138,7 +138,7 @@ export function applyAction(state: OldMaidState, action: GameAction): OldMaidSta
 
     case 'draw': {
       const { fromPlayerId, cardIndex } = action.payload as { fromPlayerId: string; cardIndex: number };
-      const drawerId = action.playerId;
+      const drawerId = action.playerId ?? '';
 
       const fromHand = [...(s.hands[fromPlayerId] ?? [])];
       if (cardIndex < 0 || cardIndex >= fromHand.length) return state;

@@ -55,7 +55,7 @@ export function createInitialState(
 }
 
 export function applyAction(state: WarState, action: GameAction): WarState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'flip': {

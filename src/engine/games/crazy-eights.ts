@@ -106,12 +106,12 @@ function reshuffleIfNeeded(drawPile: Card[], discardPile: Card[]): { drawPile: C
 }
 
 export function applyAction(state: CrazyEightsState, action: GameAction): CrazyEightsState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'play': {
       const { cardId, chosenSuit } = action.payload as { cardId: string; chosenSuit?: Suit };
-      const pid = action.playerId;
+      const pid = action.playerId ?? '';
       const pIdx = s.players.findIndex((p) => p.id === pid);
       if (pIdx !== s.currentPlayerIndex) return state;
 
@@ -196,7 +196,7 @@ export function applyAction(state: CrazyEightsState, action: GameAction): CrazyE
     }
 
     case 'draw': {
-      const pid = action.playerId;
+      const pid = action.playerId ?? '';
       const pIdx = s.players.findIndex((p) => p.id === pid);
       if (pIdx !== s.currentPlayerIndex) return state;
 

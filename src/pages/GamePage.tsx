@@ -1,0 +1,26 @@
+import { useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import GameLayout from '@/components/layout/GameLayout';
+import GameBoard from '@/components/game/GameBoard';
+import { useGameStore } from '@/store/gameStore';
+
+export default function GamePage() {
+  const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
+  const { gameId: storeGameId, state } = useGameStore();
+
+  // Redirect home if no game is loaded
+  useEffect(() => {
+    if (!storeGameId || !state) {
+      navigate('/', { replace: true });
+    }
+  }, [storeGameId, state, navigate]);
+
+  if (!gameId) return null;
+
+  return (
+    <GameLayout>
+      <GameBoard gameId={gameId} />
+    </GameLayout>
+  );
+}

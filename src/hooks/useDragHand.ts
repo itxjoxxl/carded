@@ -16,7 +16,8 @@ interface DragHandResult {
  */
 export function useDragHand(
   cards: Card[],
-  onReorder: (newOrder: Card[]) => void
+  onReorder: (newOrder: Card[]) => void,
+  disabled?: boolean
 ): DragHandResult {
   const containerRef = useRef<HTMLDivElement>(null!);
   const [displayOrder, setDisplayOrder] = useState<Card[]>(() => [...cards]);
@@ -53,7 +54,7 @@ export function useDragHand(
   }
 
   const bind = useDrag(
-    ({ args: [startIndex], active, xy: [pointerX], last, cancel }) => {
+    ({ args: [startIndex], active, xy: [pointerX], last }) => {
       const containerEl = containerRef.current;
       if (!containerEl) return;
 
@@ -81,7 +82,7 @@ export function useDragHand(
         onReorder(reordered);
       }
 
-      if (cancel && !active) {
+      if (!active && draggingIndexRef.current !== null && !last) {
         // Restore on cancel
         setDisplayOrder([...committedRef.current]);
         draggingIndexRef.current = null;

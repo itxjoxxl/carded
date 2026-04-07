@@ -39,7 +39,7 @@ export type GamePhase =
   // Pass phase for hearts
   | 'pass';
 
-export type GameStatus = 'idle' | 'active' | 'paused' | 'finished';
+export type GameStatus = 'idle' | 'active' | 'paused' | 'finished' | 'playing' | 'ended';
 
 export type GameId =
   | 'blackjack'
@@ -62,19 +62,19 @@ export interface BaseGameState {
   roomId?: string;
   players: Player[];
   currentPlayerIndex: number;
-  phase: GamePhase;
+  phase?: string;
   status: GameStatus;
   winners: string[]; // player IDs
   scores: Record<string, number>; // playerId -> score
-  turnCount: number;
+  turnCount?: number;
   seed?: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GameAction {
   type: string;
-  playerId: string;
+  playerId?: string;
   payload?: Record<string, unknown>;
   timestamp?: string;
 }

@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import type { Player, BotDifficulty } from '@/types/player';
-import type { GameAction, BaseGameState } from '@/types/game';
+import type { GameAction, BaseGameState, GameId } from '@/types/game';
 
 interface GameStore {
-  gameId: string | null;
+  gameId: GameId | null;
   state: BaseGameState | null;
   isOnline: boolean;
   roomCode: string | null;
   botDifficulty: BotDifficulty;
   // Actions
   startGame(
-    gameId: string,
+    gameId: GameId,
     players: Player[],
     options?: Record<string, unknown>,
     seed?: number
@@ -19,7 +19,7 @@ interface GameStore {
   setOnlineMode(roomCode: string): void;
   endGame(): void;
   setBotDifficulty(d: BotDifficulty): void;
-  // Internal – set state from engine
+  // Internal – called by useGame after the engine processes an action
   _setState(state: BaseGameState): void;
 }
 
@@ -31,30 +31,37 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   botDifficulty: 'medium',
 
   startGame(
-    gameId: string,
+    gameId: GameId,
     players: Player[],
     _options?: Record<string, unknown>,
-    _seed?: number
+    seed?: number
   ) {
-    // The engine hook (useGame) handles initialising the actual game state;
-    // here we just record which game is active and who's playing.
+    // The engine hook (useGame) will call _setState with the real initial state
+    // after loading the engine module.  Here we record the game identity so
+    // useGame knows which engine to load.
+    const now = new Date().toISOString();
     const baseState: BaseGameState = {
       gameId,
       players,
       currentPlayerIndex: 0,
-      status: 'playing',
+      phase: 'waiting',
+      status: 'idle',
       winners: [],
       scores: Object.fromEntries(players.map((p) => [p.id, 0])),
+      turnCount: 0,
+      seed,
+      createdAt: now,
+      updatedAt: now,
     };
     set({ gameId, state: baseState, isOnline: get().isOnline });
   },
 
-  applyAction(action: GameAction) {
-    // The useGame hook owns the real reducer call; this method exists so the
-    // roomStore / online path can route actions through a single place.
-    // The hook replaces state via _setState after running the engine.
-    // For offline games the hook handles everything directly.
-    void action; // will be consumed by useGame
+  applyAction(_action: GameAction) {
+    // The useGame hook owns the engine reducer call.
+    // This method exists as a hook point for the online path so that
+    // incoming remote actions can be routed here; useGame subscribes to
+    // state changes and picks up new actions via its own doAction.
+    // No-op in the store itself — useGame calls _setState directly.
   },
 
   setOnlineMode(roomCode: string) {

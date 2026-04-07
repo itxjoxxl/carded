@@ -68,7 +68,7 @@ function checkSnapCondition(pile: Card[]): boolean {
 }
 
 export function applyAction(state: SnapState, action: GameAction): SnapState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'flip': {
@@ -109,7 +109,7 @@ export function applyAction(state: SnapState, action: GameAction): SnapState {
       if (now < s.snapDebounceUntil) return state; // too fast - debounced
       if (!s.snapWindowOpen && s.phase !== 'snap-window') return state;
 
-      const snapPlayerId = action.playerId;
+      const snapPlayerId = action.playerId ?? '';
       const isValid = checkSnapCondition(s.centralPile);
 
       if (!isValid) {
@@ -243,11 +243,4 @@ export function getBotAction(
   }
 
   return { type: 'flip', playerId: botPlayerId };
-}
-
-function checkSnapCondition(pile: Card[]): boolean {
-  if (pile.length < 2) return false;
-  const top = pile[pile.length - 1];
-  const second = pile[pile.length - 2];
-  return top.rank === second.rank;
 }

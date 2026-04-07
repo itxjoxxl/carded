@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useProfileStore } from '@/store/profileStore';
 import { useRoomStore } from '@/store/roomStore';
 import { broadcastGameAction } from '@/lib/realtime';
-import type { GameAction, BaseGameState } from '@/types/game';
+import type { GameAction, BaseGameState, GameId } from '@/types/game';
 import type { Player } from '@/types/player';
 
 // ---------------------------------------------------------------------------
@@ -27,16 +27,59 @@ interface GameEngine {
   ) => GameAction;
 }
 
-// Lazy engine map — add new games here
-const engineMap: Record<string, () => Promise<GameEngine>> = {
-  blackjack: () => import('@/engine/games/blackjack') as Promise<GameEngine>,
-  war: () => import('@/engine/games/war') as Promise<GameEngine>,
-  snap: () => import('@/engine/games/snap') as Promise<GameEngine>,
-  uno: () => import('@/engine/games/uno') as Promise<GameEngine>,
-  crazy8s: () => import('@/engine/games/crazy8s') as Promise<GameEngine>,
-  go_fish: () => import('@/engine/games/go_fish') as Promise<GameEngine>,
-  solitaire: () => import('@/engine/games/solitaire') as Promise<GameEngine>,
+// Lazy engine map — each import is cast via unknown to satisfy the generic
+// GameEngine interface (concrete engine states extend BaseGameState).
+const engineMap: Record<GameId, () => Promise<GameEngine>> = {
+  blackjack: () =>
+    import('@/engine/games/blackjack') as unknown as Promise<GameEngine>,
+  war: () =>
+    import('@/engine/games/war') as unknown as Promise<GameEngine>,
+  solitaire: () =>
+    import('@/engine/games/solitaire') as unknown as Promise<GameEngine>,
+  'go-fish': () =>
+    import('@/engine/games/go-fish') as unknown as Promise<GameEngine>,
+  'crazy-eights': () =>
+    import('@/engine/games/crazy-eights') as unknown as Promise<GameEngine>,
+  'old-maid': () =>
+    import('@/engine/games/old-maid') as unknown as Promise<GameEngine>,
+  snap: () =>
+    import('@/engine/games/snap') as unknown as Promise<GameEngine>,
+  'five-card-draw': () =>
+    import('@/engine/games/five-card-draw') as unknown as Promise<GameEngine>,
+  'texas-holdem': () =>
+    import('@/engine/games/texas-holdem') as unknown as Promise<GameEngine>,
+  // Stubs for games not yet implemented — resolve to a no-op engine
+  uno: () => Promise.resolve(noopEngine()),
+  rummy: () => Promise.resolve(noopEngine()),
+  'gin-rummy': () => Promise.resolve(noopEngine()),
+  hearts: () => Promise.resolve(noopEngine()),
+  spades: () => Promise.resolve(noopEngine()),
 };
+
+function noopEngine(): GameEngine {
+  return {
+    createInitialState: (players) => ({
+      gameId: 'war' as GameId,
+      players,
+      currentPlayerIndex: 0,
+      phase: 'waiting' as const,
+      status: 'idle' as const,
+      winners: [],
+      scores: {},
+      turnCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+    applyAction: (state) => state,
+    getLegalActions: () => [],
+    isTerminal: () => false,
+    getWinners: () => [],
+    getBotAction: (_state, playerId) => ({
+      type: 'NOOP',
+      playerId,
+    }),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Bot think-time (ms) per difficulty
@@ -52,7 +95,7 @@ const BOT_DELAY: Record<string, number> = {
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useGame() {
+export function useGame(_gameId?: string) {
   const {
     gameId,
     state,
@@ -61,6 +104,7 @@ export function useGame() {
     botDifficulty,
     _setState,
     endGame,
+    startGame: storeStartGame,
   } = useGameStore();
 
   const { profile } = useProfileStore();
@@ -70,7 +114,7 @@ export function useGame() {
   const [engineLoaded, setEngineLoaded] = useState(false);
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load the engine whenever gameId changes
+  // Load the engine and create initial state whenever gameId changes
   useEffect(() => {
     if (!gameId) return;
     const loader = engineMap[gameId];
@@ -78,14 +122,26 @@ export function useGame() {
       console.error(`[useGame] No engine registered for gameId: ${gameId}`);
       return;
     }
+
     setEngineLoaded(false);
     loader().then((mod) => {
       engineRef.current = mod;
       setEngineLoaded(true);
-    });
-  }, [gameId]);
 
-  // Derive useful values
+      // If the store only has a shell state (status: 'idle'), initialise via engine
+      const current = useGameStore.getState().state;
+      if (current && current.status === 'idle' && mod.createInitialState) {
+        const realState = mod.createInitialState(
+          current.players,
+          {},
+          current.seed
+        );
+        _setState(realState);
+      }
+    });
+  }, [gameId, _setState]);
+
+  // Derived values
   const currentPlayer =
     state && state.players[state.currentPlayerIndex]
       ? state.players[state.currentPlayerIndex]
@@ -96,7 +152,7 @@ export function useGame() {
     !!currentPlayer && currentPlayer.id === myPlayerId && !currentPlayer.isBot;
 
   const legalActions: GameAction[] =
-    engineRef.current && state && myPlayerId
+    engineRef.current && state && myPlayerId && engineLoaded
       ? engineRef.current.getLegalActions(state, myPlayerId)
       : [];
 
@@ -120,7 +176,7 @@ export function useGame() {
       // Check terminal
       if (engineRef.current.isTerminal(nextState)) {
         const winners = engineRef.current.getWinners(nextState);
-        _setState({ ...nextState, status: 'ended', winners });
+        _setState({ ...nextState, status: 'finished', winners });
         endGame();
       }
     },
@@ -128,10 +184,10 @@ export function useGame() {
   );
 
   // ---------------------------------------------------------------------------
-  // Bot turns
+  // Bot turns — fire after the current player index changes to a bot seat
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!engineLoaded || !state || state.status !== 'playing') return;
+    if (!engineLoaded || !state || (state.status !== 'active' && state.status !== 'playing')) return;
     if (!currentPlayer?.isBot) return;
 
     const delay = BOT_DELAY[botDifficulty] ?? 800;
@@ -153,15 +209,18 @@ export function useGame() {
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     engineLoaded,
     state?.currentPlayerIndex,
     state?.status,
     botDifficulty,
-    doAction,
-    // intentionally not exhaustive — we only re-run on index change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
+
+  const restart = useCallback(() => {
+    if (!state) return;
+    storeStartGame(state.gameId, state.players);
+  }, [state, storeStartGame]);
 
   return {
     state,
@@ -170,5 +229,8 @@ export function useGame() {
     isMyTurn,
     currentPlayer,
     engineLoaded,
+    restart,
+    /** Convenience: start an offline game directly from a component */
+    startGame: storeStartGame,
   };
 }

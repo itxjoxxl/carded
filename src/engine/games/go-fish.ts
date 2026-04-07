@@ -108,12 +108,12 @@ function checkAndRemoveBooks(
 }
 
 export function applyAction(state: GoFishState, action: GameAction): GoFishState {
-  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: state.turnCount + 1 };
+  const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
 
   switch (action.type) {
     case 'ask': {
       const { targetId, rank } = action.payload as { targetId: string; rank: Rank };
-      const askerId = action.playerId;
+      const askerId = action.playerId ?? '';
 
       // Validate: asker must have at least one of this rank
       const askerHand = s.hands[askerId] ?? [];
@@ -196,7 +196,7 @@ export function applyAction(state: GoFishState, action: GameAction): GoFishState
 
     case 'draw': {
       // Manual draw (when no valid ask possible)
-      const pid = action.playerId;
+      const pid = action.playerId ?? '';
       if (s.pond.length === 0) return state;
       const newPond = [...s.pond];
       const drawnCard = { ...newPond.shift()!, faceUp: true };

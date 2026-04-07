@@ -49,14 +49,14 @@ export function useRoom(code?: string) {
               id: rp.playerId,
               name: rp.name,
               avatar: rp.avatar,
-              isBot: false,
+              isBot: false as boolean,
               isLocal: rp.playerId === profile?.id,
               seatIndex: idx,
-            } satisfies Player;
+            } as Player;
           })
           .filter((p): p is Player => p !== null);
 
-        gameStore.startGame(room.gameId, orderedPlayers, {}, seed);
+        gameStore.startGame(room.gameId as import('@/types/game').GameId, orderedPlayers, {}, seed);
       },
 
       onGameEnded({ winners }) {
@@ -145,14 +145,14 @@ export function useRoom(code?: string) {
           id: rp.playerId,
           name: rp.name,
           avatar: rp.avatar,
-          isBot: false,
+          isBot: false as boolean,
           isLocal: rp.playerId === profile.id,
           seatIndex: idx,
-        } satisfies Player;
+        } as Player;
       })
       .filter((p): p is Player => p !== null);
 
-    gameStore.startGame(room.gameId, orderedPlayers, {}, seed);
+    gameStore.startGame(room.gameId as import('@/types/game').GameId, orderedPlayers, {}, seed);
     gameStore.setOnlineMode(room.code);
   }, [roomStore, gameStore, profile]);
 

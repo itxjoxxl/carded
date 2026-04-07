@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
-import type { Room, RoomPlayer, GameEvent, GameAction } from '@/types/room';
+import type { Room, RoomPlayer, GameEvent } from '@/types/room';
+import type { GameAction } from '@/types/game';
 import type { Player } from '@/types/player';
 
 // ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ export async function createRoom(
     playerId: hostPlayer.id,
     name: hostPlayer.name,
     avatar: hostPlayer.avatar,
-    seatIndex: hostPlayer.seatIndex,
+    seatIndex: hostPlayer.seatIndex ?? 0,
     isReady: false,
   };
 
@@ -202,7 +203,6 @@ export function subscribeToRoom(
     config: { broadcast: { self: false } },
   });
 
-  // Listen to broadcast events
   channel
     .on('broadcast', { event: 'player_join' }, ({ payload }) => {
       callbacks.onPlayerJoin?.(payload as RoomPlayer);
@@ -224,7 +224,7 @@ export function subscribeToRoom(
     .subscribe();
 
   return () => {
-    supabase.removeChannel(channel);
+    void supabase!.removeChannel(channel);
   };
 }
 
