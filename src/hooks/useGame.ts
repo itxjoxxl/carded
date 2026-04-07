@@ -194,8 +194,18 @@ export function useGame(_gameId?: string) {
       // Check terminal — mark finished but don't clear state yet (let ResultOverlay show)
       if (engineRef.current.isTerminal(nextState)) {
         const winners = engineRef.current.getWinners(nextState);
-        _setState({ ...nextState, status: 'finished', winners });
-        // endGame() is called by the board via restart/exit, not here
+        const finishedState: BaseGameState = { ...nextState, status: 'finished' as const, winners };
+        _setState(finishedState);
+
+        // Record stat for local player
+        if (gameId && myPlayerId) {
+          const isWinner = winners.includes(myPlayerId);
+          const result: 'win' | 'loss' | 'draw' =
+            winners.length === 0 ? 'draw'
+            : isWinner ? 'win'
+            : 'loss';
+          useProfileStore.getState().recordResult(gameId, result);
+        }
       }
     },
     [state, isOnline, roomCode, myPlayerId, _setState, incrementSequence, endGame]

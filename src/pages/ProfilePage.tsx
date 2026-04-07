@@ -13,8 +13,12 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { cn } from '@/lib/cn';
 
 export default function ProfilePage() {
-  const { profile, updateName, updateAvatar } = useProfileStore();
+  const { profile, stats, updateName, updateAvatar } = useProfileStore();
   const { soundEnabled, toggleSound, cardBackColor, setCardBackColor, animationSpeed, setAnimationSpeed } = useSettingsStore();
+  const allGameStats = Object.values(stats);
+  const totalPlayed = allGameStats.reduce((s, g) => s + g.played, 0);
+  const totalWon = allGameStats.reduce((s, g) => s + g.won, 0);
+  const winRate = totalPlayed > 0 ? Math.round((totalWon / totalPlayed) * 100) : 0;
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(profile?.name ?? '');
   const [editAvatar, setEditAvatar] = useState(profile?.avatar ?? '😀');
@@ -54,9 +58,23 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats summary row */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Played', value: totalPlayed, color: 'text-white' },
+            { label: 'Won', value: totalWon, color: 'text-green-400' },
+            { label: 'Win %', value: `${winRate}%`, color: 'text-yellow-400' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-felt-dark/60 rounded-2xl p-3 border border-white/10 text-center">
+              <div className={`text-2xl font-bold font-ui ${color}`}>{value}</div>
+              <div className="text-[10px] text-white/40 font-ui uppercase mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-game stats */}
         <div>
-          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest font-ui mb-3">Your Stats</h2>
+          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest font-ui mb-3">Game History</h2>
           <StatsGrid />
         </div>
 

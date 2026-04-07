@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useProfileStore } from '@/store/profileStore';
 
@@ -22,6 +22,21 @@ function PageSpinner() {
   );
 }
 
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/lobby/:gameId" element={<LobbyPage />} />
+        <Route path="/game/:gameId" element={<GamePage />} />
+        <Route path="/room/:code" element={<RoomPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
   const { profile, isSetupComplete, initProfile } = useProfileStore();
 
@@ -40,15 +55,7 @@ export default function App() {
       <Toast />
 
       <Suspense fallback={<PageSpinner />}>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/lobby/:gameId" element={<LobbyPage />} />
-            <Route path="/game/:gameId" element={<GamePage />} />
-            <Route path="/room/:code" element={<RoomPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Routes>
-        </AnimatePresence>
+        <AnimatedRoutes />
       </Suspense>
     </BrowserRouter>
   );
