@@ -9,12 +9,12 @@ export default function GamePage() {
   const navigate = useNavigate();
   const { gameId: storeGameId, state } = useGameStore();
 
-  // Redirect home if no game is loaded
+  // Redirect home only if no game was ever loaded (not on game-over)
   useEffect(() => {
-    if (!storeGameId || !state) {
+    if (!storeGameId) {
       navigate('/', { replace: true });
     }
-  }, [storeGameId, state, navigate]);
+  }, [storeGameId, navigate]);
 
   if (!gameId) return null;
 

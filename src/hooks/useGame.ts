@@ -48,12 +48,16 @@ const engineMap: Record<GameId, () => Promise<GameEngine>> = {
     import('@/engine/games/five-card-draw') as unknown as Promise<GameEngine>,
   'texas-holdem': () =>
     import('@/engine/games/texas-holdem') as unknown as Promise<GameEngine>,
-  // Stubs for games not yet implemented — resolve to a no-op engine
-  uno: () => Promise.resolve(noopEngine()),
-  rummy: () => Promise.resolve(noopEngine()),
-  'gin-rummy': () => Promise.resolve(noopEngine()),
-  hearts: () => Promise.resolve(noopEngine()),
-  spades: () => Promise.resolve(noopEngine()),
+  uno: () =>
+    import('@/engine/games/uno') as unknown as Promise<GameEngine>,
+  rummy: () =>
+    import('@/engine/games/rummy') as unknown as Promise<GameEngine>,
+  'gin-rummy': () =>
+    import('@/engine/games/gin-rummy') as unknown as Promise<GameEngine>,
+  hearts: () =>
+    import('@/engine/games/hearts') as unknown as Promise<GameEngine>,
+  spades: () =>
+    import('@/engine/games/spades') as unknown as Promise<GameEngine>,
 };
 
 function noopEngine(): GameEngine {
@@ -173,11 +177,11 @@ export function useGame(_gameId?: string) {
         );
       }
 
-      // Check terminal
+      // Check terminal — mark finished but don't clear state yet (let ResultOverlay show)
       if (engineRef.current.isTerminal(nextState)) {
         const winners = engineRef.current.getWinners(nextState);
         _setState({ ...nextState, status: 'finished', winners });
-        endGame();
+        // endGame() is called by the board via restart/exit, not here
       }
     },
     [state, isOnline, roomCode, myPlayerId, _setState, incrementSequence, endGame]
