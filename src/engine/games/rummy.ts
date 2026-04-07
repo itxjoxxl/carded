@@ -147,6 +147,33 @@ export function createInitialState(
   };
 }
 
+function startNewRound(state: RummyState): RummyState {
+  const n = state.players.length;
+  const handSize = HAND_SIZE[n] ?? 7;
+  const deck = shuffle(createStandardDeck(), state.seed ? state.seed + (state.turnCount ?? 0) : undefined)
+    .map((c) => ({ ...c, faceUp: false }));
+  let deckCopy = [...deck];
+  const hands: Record<string, Card[]> = {};
+  for (const p of state.players) {
+    hands[p.id] = deckCopy.splice(0, handSize).map((c) => ({ ...c, faceUp: true }));
+  }
+  const firstDiscard = { ...deckCopy.shift()!, faceUp: true };
+  const nextDealer = (state.currentPlayerIndex + 1) % n;
+  return {
+    ...state,
+    phase: 'draw',
+    status: 'active',
+    hands,
+    stock: deckCopy,
+    discardPile: [firstDiscard],
+    melds: [],
+    hasDrawn: false,
+    drawnFromDiscard: false,
+    winners: [],
+    currentPlayerIndex: nextDealer,
+  };
+}
+
 export function applyAction(state: RummyState, action: GameAction): RummyState {
   const s = { ...state, updatedAt: new Date().toISOString(), turnCount: (state.turnCount ?? 0) + 1 };
   const playerId = action.playerId ?? '';
@@ -275,17 +302,8 @@ export function applyAction(state: RummyState, action: GameAction): RummyState {
           };
         }
 
-        // Start new round
-        return {
-          ...s,
-          hands: newHands,
-          discardPile,
-          scores: newScores,
-          phase: 'ended',
-          status: 'finished',
-          winners: [playerId],
-          hasDrawn: false,
-        };
+        // Start new round with fresh deal
+        return startNewRound({ ...s, scores: newScores });
       }
 
       const nextIdx = (pIdx + 1) % s.players.length;

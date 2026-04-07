@@ -22,12 +22,14 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
   const phase = holdem.phase ?? 'preflop';
   const communityCards = holdem.communityCards ?? [];
   const pot = holdem.pot ?? 0;
+  const holdemPlayers: any[] = holdem.holdemPlayers ?? [];
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponents = state.players.filter((p: any) => !p.isLocal);
-  const localHand = localPlayer ? (holdem.hands?.[localPlayer.id] ?? []) : [];
+  const localHoldemPlayer = localPlayer ? holdemPlayers.find((p: any) => p.playerId === localPlayer.id) : null;
+  const localHand = localHoldemPlayer?.holeCards ?? [];
   const currentBet = holdem.currentBet ?? 0;
-  const playerBet = localPlayer ? (holdem.playerBets?.[localPlayer.id] ?? 0) : 0;
-  const callAmount = currentBet - playerBet;
+  const playerBet = localHoldemPlayer?.totalBet ?? 0;
+  const callAmount = Math.max(0, currentBet - playerBet);
 
   const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
@@ -55,9 +57,10 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
         {/* Opponent seats */}
         <div className="absolute top-16 left-0 right-0 flex justify-around px-4">
           {opponents.slice(0, 3).map((opp: any, i: number) => {
-            const oppHand = holdem.hands?.[opp.id] ?? [];
+            const oppHoldemPlayer = holdemPlayers.find((p: any) => p.playerId === opp.id);
+            const oppHand = oppHoldemPlayer?.holeCards ?? [];
             const isCurrent = state.currentPlayerIndex === state.players.indexOf(opp);
-            const isFolded = holdem.folded?.[opp.id];
+            const isFolded = oppHoldemPlayer?.folded ?? false;
             return (
               <div key={opp.id} className={cn('flex flex-col items-center gap-1 transition-opacity', isFolded && 'opacity-40')}>
                 <Avatar emoji={opp.avatar} name={opp.name} size="sm" isCurrentTurn={isCurrent} />
@@ -66,7 +69,7 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
                     <Card key={c.id} card={c} faceUp={phase === 'showdown'} size="sm" />
                   ))}
                 </div>
-                <div className="text-xs text-white/40 font-ui">${holdem.chips?.[opp.id] ?? 500}</div>
+                <div className="text-xs text-white/40 font-ui">${oppHoldemPlayer?.chips ?? 1000}</div>
               </div>
             );
           })}
@@ -109,7 +112,8 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
           </div>
           {localPlayer && (
             <div className="text-xs text-white/40 font-ui">
-              {localPlayer.name} — ${holdem.chips?.[localPlayer.id] ?? 1000}
+              {localPlayer.name} — ${localHoldemPlayer?.chips ?? 1000}
+              {localHoldemPlayer?.folded && <span className="text-red-400 ml-1">(folded)</span>}
             </div>
           )}
         </div>
@@ -140,7 +144,7 @@ export default function TexasHoldemBoard({ gameId }: BoardProps) {
               <input
                 type="range"
                 min={currentBet * 2 || 20}
-                max={holdem.chips?.[localPlayer?.id ?? ''] ?? 200}
+                max={localHoldemPlayer?.chips ?? 200}
                 step={10}
                 value={raiseAmount}
                 onChange={(e) => setRaiseAmount(Number(e.target.value))}

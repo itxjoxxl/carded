@@ -18,9 +18,11 @@ export default function FiveCardDrawBoard({ gameId }: BoardProps) {
 
   const draw = state as any;
   const phase = draw.phase;
+  const fcdPlayers: any[] = draw.fcdPlayers ?? [];
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponents = state.players.filter((p: any) => !p.isLocal);
-  const localHand = localPlayer ? (draw.hands?.[localPlayer.id] ?? []) : [];
+  const localFcdPlayer = localPlayer ? fcdPlayers.find((p: any) => p.playerId === localPlayer.id) : null;
+  const localHand = localFcdPlayer?.hand ?? [];
   const pot = draw.pot ?? 0;
 
   const gameOver = state.status === 'finished' || state.status === 'ended';
@@ -48,7 +50,8 @@ export default function FiveCardDrawBoard({ gameId }: BoardProps) {
       {/* Opponents */}
       <div className="flex justify-around px-6 pt-20 pb-4">
         {opponents.map((opp: any) => {
-          const oppHand = draw.hands?.[opp.id] ?? [];
+          const oppFcdPlayer = fcdPlayers.find((p: any) => p.playerId === opp.id);
+          const oppHand = oppFcdPlayer?.hand ?? [];
           const isCurrent = state.players[state.currentPlayerIndex]?.id === opp.id;
           return (
             <div key={opp.id} className="flex flex-col items-center gap-2">

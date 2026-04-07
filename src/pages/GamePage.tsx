@@ -7,7 +7,7 @@ import { useGameStore } from '@/store/gameStore';
 export default function GamePage() {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { gameId: storeGameId, state } = useGameStore();
+  const { gameId: storeGameId, endGame } = useGameStore();
 
   // Redirect home only if no game was ever loaded (not on game-over)
   useEffect(() => {
@@ -15,6 +15,13 @@ export default function GamePage() {
       navigate('/', { replace: true });
     }
   }, [storeGameId, navigate]);
+
+  // Clear game state when the user navigates away from the game page
+  useEffect(() => {
+    return () => {
+      endGame();
+    };
+  }, [endGame]);
 
   if (!gameId) return null;
 

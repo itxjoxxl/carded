@@ -16,12 +16,16 @@ export default function WarBoard({ gameId }: BoardProps) {
   const war = state as any;
   const phase = war.phase;
   const playerDecks = war.playerDecks ?? [[], []];
-  const battleArea = war.battleArea ?? { player: null, opponent: null };
+  const flippedCards: [any, any] = war.flippedCards ?? [null, null];
   const warPile = war.warPile ?? [];
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponentPlayer = state.players.find((p: any) => !p.isLocal);
-  const localDeck = localPlayer ? playerDecks[state.players.indexOf(localPlayer)] ?? [] : [];
-  const oppDeck = opponentPlayer ? playerDecks[state.players.indexOf(opponentPlayer)] ?? [] : [];
+  const localIdx = localPlayer ? state.players.indexOf(localPlayer) : 0;
+  const oppIdx = opponentPlayer ? state.players.indexOf(opponentPlayer) : 1;
+  const localDeck = playerDecks[localIdx] ?? [];
+  const oppDeck = playerDecks[oppIdx] ?? [];
+  const localFlippedCard = flippedCards[localIdx];
+  const oppFlippedCard = flippedCards[oppIdx];
   const isWar = phase === 'war';
   const gameOver = state.status === 'finished' || state.status === 'ended';
   const winners = state.winners.map((wid: string) => state.players.find((p: any) => p.id === wid)).filter(Boolean) as any[];
@@ -61,15 +65,15 @@ export default function WarBoard({ gameId }: BoardProps) {
         </AnimatePresence>
 
         <div className="flex gap-8 items-center">
-          {battleArea.opponent && (
+          {oppFlippedCard && (
             <motion.div initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-              <Card card={battleArea.opponent} faceUp={true} size="lg" />
+              <Card card={oppFlippedCard} faceUp={true} size="lg" />
             </motion.div>
           )}
           <div className="text-white/30 text-2xl">VS</div>
-          {battleArea.player && (
+          {localFlippedCard && (
             <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-              <Card card={battleArea.player} faceUp={true} size="lg" />
+              <Card card={localFlippedCard} faceUp={true} size="lg" />
             </motion.div>
           )}
         </div>

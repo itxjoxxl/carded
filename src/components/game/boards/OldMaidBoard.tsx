@@ -18,7 +18,7 @@ export default function OldMaidBoard({ gameId }: BoardProps) {
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponents = state.players.filter((p: any) => !p.isLocal);
   const localHand = localPlayer ? (om.hands?.[localPlayer.id] ?? []) : [];
-  const pairs: Record<string, number> = om.pairsDiscarded ?? {};
+  const pairs: Record<string, number> = om.discardedPairs ?? {};
   const phase = om.phase;
 
   const gameOver = state.status === 'finished' || state.status === 'ended';

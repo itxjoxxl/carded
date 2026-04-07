@@ -20,7 +20,7 @@ export default function RummyBoard({ gameId }: BoardProps) {
   const localPlayer = state.players.find((p: any) => p.isLocal);
   const opponents = state.players.filter((p: any) => !p.isLocal);
   const localHand = localPlayer ? (rummy.hands?.[localPlayer.id] ?? []) : [];
-  const drawPile = rummy.drawPile ?? [];
+  const drawPile = rummy.stock ?? [];
   const discardPile = rummy.discardPile ?? [];
   const phase = rummy.phase ?? 'draw';
 

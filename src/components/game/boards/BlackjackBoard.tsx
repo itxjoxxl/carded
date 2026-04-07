@@ -88,7 +88,7 @@ export default function BlackjackBoard({ gameId }: BoardProps) {
         </div>
 
         {/* Bet phase */}
-        {phase === 'betting' && (
+        {phase === 'betting' && isMyTurn && (
           <div className="flex flex-col items-center gap-3 w-full px-6">
             <div className="text-white/60 text-sm font-ui">Chips: <span className="text-yellow-400 font-bold">${chips}</span></div>
             <div className="flex gap-2 flex-wrap justify-center">
